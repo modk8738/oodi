@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickBook</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  margin: 0;
+  color: #333;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  margin-top: 40px;
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+h2 {
+  text-align: center;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  border-radius: 8px;
+  border: none;
+  background: #667eea;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #5a67d8;
+}
+
+.hidden {
+  display: none;
+}
+
+.card {
+  background: #f9f9f9;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border-left: 5px solid #667eea;
+}
+
+.status {
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.approved { color: green; }
+.rejected { color: red; }
+.pending { color: orange; }
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.small-btn {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container" id="auth">
+  <h2>QuickBook</h2>
+  <input type="text" id="username" placeholder="Enter your name">
+  <button onclick="login()">Continue</button>
+</div>
+
+<div class="container hidden" id="userPanel">
+  <div class="nav">
+    <h3>Book Appointment</h3>
+    <button class="small-btn" onclick="goAdmin()">Admin</button>
+  </div>
+
+  <select id="service">
+    <option>Consultation</option>
+    <option>Checkup</option>
+  </select>
+
+  <input type="date" id="date">
+  <input type="time" id="time">
+
+  <button onclick="book()">Book Appointment</button>
+
+  <h3>Your Appointments</h3>
+  <div id="appointments"></div>
+</div>
+
+<div class="container hidden" id="adminPanel">
+  <div class="nav">
+    <h3>Admin Panel</h3>
+    <button class="small-btn" onclick="goUser()">Back</button>
+  </div>
+  <div id="allAppointments"></div>
+</div>
+
+<script>
+let currentUser = null;
+let appointments = JSON.parse(localStorage.getItem("appointments")) || [];
+
+function save() {
+  localStorage.setItem("appointments", JSON.stringify(appointments));
+}
+
+function login() {
+  let name = document.getElementById("username").value;
+  if (!name) return alert("Enter name");
+
+  currentUser = name;
+  document.getElementById("auth").classList.add("hidden");
+  document.getElementById("userPanel").classList.remove("hidden");
+
+  loadAppointments();
+}
+
+function book() {
+  let service = document.getElementById("service").value;
+  let date = document.getElementById("date").value;
+  let time = document.getElementById("time").value;
+
+  if (!date || !time) return alert("Fill all fields");
+
+  let exists = appointments.find(a => a.date === date && a.time === time);
+  if (exists) return alert("This time is already booked");
+
+  appointments.push({
+    user: currentUser,
+    service,
+    date,
+    time,
+    status: "Pending"
+  });
+
+  save();
+  loadAppointments();
+}
+
+function loadAppointments() {
+  let container = document.getElementById("appointments");
+  container.innerHTML = "";
+
+  appointments
+    .filter(a => a.user === currentUser)
+    .forEach(a => {
+      container.innerHTML += `
+        <div class="card">
+          <b>${a.service}</b><br>
+          ${a.date} - ${a.time}
+          <div class="status ${a.status.toLowerCase()}">${a.status}</div>
+        </div>
+      `;
+    });
+}
+
+function goAdmin() {
+  document.getElementById("userPanel").classList.add("hidden");
+  document.getElementById("adminPanel").classList.remove("hidden");
+  loadAdmin();
+}
+
+function goUser() {
+  document.getElementById("adminPanel").classList.add("hidden");
+  document.getElementById("userPanel").classList.remove("hidden");
+}
+
+function loadAdmin() {
+  let container = document.getElementById("allAppointments");
+  container.innerHTML = "";
+
+  appointments.forEach((a, i) => {
+    container.innerHTML += `
+      <div class="card">
+        <b>${a.user}</b> - ${a.service}<br>
+        ${a.date} ${a.time}
+        <div class="status ${a.status.toLowerCase()}">${a.status}</div>
+        <button class="small-btn" onclick="approve(${i})">Approve</button>
+        <button class="small-btn" onclick="reject(${i})">Reject</button>
+      </div>
+    `;
+  });
+}
+
+function approve(i) {
+  appointments[i].status = "Approved";
+  save();
+  loadAdmin();
+}
+
+function reject(i) {
+  appointments[i].status = "Rejected";
+  save();
+  loadAdmin();
+}
+</script>
+
+</body>
+</html>
